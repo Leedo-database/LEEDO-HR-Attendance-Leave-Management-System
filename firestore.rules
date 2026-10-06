@@ -1,0 +1,79 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Connection Test Document
+    match /test/{docId} {
+      allow read, write: if true;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == 'hr.leedo2000@gmail.com' ||
+        (request.auth.token.email != null && request.auth.token.email.matches('.*admin.*')) ||
+        (exists(/databases/$(database)/documents/employees/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/employees/$(request.auth.uid)).data.role in ['HR ADMIN', 'SUPER ADMIN'])
+      );
+    }
+
+    // Employees Collection
+    match /employees/{employeeId} {
+      allow read: if true;
+      allow create, update: if true;
+      allow delete: if isAdmin() || true;
+    }
+
+    // Attendance Collection (Daily, Monthly & Register entries for all staff & HR)
+    match /attendance/{attendanceId} {
+      allow read: if true;
+      allow create, update: if true;
+      allow delete: if isAdmin() || true;
+    }
+
+    // Leave Records Collection
+    match /leaveRecords/{leaveId} {
+      allow read: if true;
+      allow create, update: if true;
+      allow delete: if isAdmin() || true;
+    }
+
+    // Monthly Locks Collection
+    match /monthlyLocks/{month} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Uploaded Registers Archive
+    match /uploadedRegisters/{registerId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Audit Logs (Append-Only)
+    match /auditLogs/{logId} {
+      allow read, create: if true;
+      allow update, delete: if false;
+    }
+
+    // Holidays Collection
+    match /holidays/{holidayId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Settings Collection
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Default Fallback
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

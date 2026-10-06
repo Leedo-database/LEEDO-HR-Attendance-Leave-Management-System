@@ -1,0 +1,190 @@
+{
+  "entities": {
+    "Employee": {
+      "title": "Employee",
+      "description": "LEEDO employee profile and employment record",
+      "type": "object",
+      "properties": {
+        "eid": { "type": "string", "maxLength": 50, "description": "Unique Employee ID" },
+        "nameEn": { "type": "string", "maxLength": 100, "description": "Employee Name in English" },
+        "nameBn": { "type": "string", "maxLength": 100, "description": "Employee Name in Bangla" },
+        "designation": { "type": "string", "maxLength": 100, "description": "Designation" },
+        "department": { "type": "string", "maxLength": 100, "description": "Department" },
+        "project": { "type": "string", "maxLength": 100, "description": "Project or Program name" },
+        "workplace": { "type": "string", "maxLength": 100, "description": "Workplace / Branch Location" },
+        "joiningDate": { "type": "string", "maxLength": 20, "description": "Joining date (YYYY-MM-DD)" },
+        "employmentType": { "type": "string", "maxLength": 50, "description": "Permanent, Contractual, Project-based" },
+        "reportingSupervisor": { "type": "string", "maxLength": 100, "description": "Supervisor name" },
+        "mobileNumber": { "type": "string", "maxLength": 30, "description": "Mobile number" },
+        "email": { "type": "string", "maxLength": 100, "description": "Email address" },
+        "status": { "type": "string", "enum": ["Active", "Resigned", "Terminated", "Inactive"], "description": "Employment status" },
+        "role": { "type": "string", "enum": ["EMPLOYEE", "HR ADMIN", "SUPER ADMIN"], "description": "User access role" },
+        "resignationDate": { "type": "string", "maxLength": 20, "description": "Resignation date if applicable" },
+        "lastWorkingDay": { "type": "string", "maxLength": 20, "description": "Last working day" },
+        "photoUrl": { "type": "string", "maxLength": 500, "description": "Profile picture URL or base64" },
+        "createdAt": { "type": "string", "description": "Timestamp created" },
+        "updatedAt": { "type": "string", "description": "Timestamp updated" }
+      },
+      "required": ["eid", "nameEn", "designation", "department", "status", "role"]
+    },
+    "Attendance": {
+      "title": "Attendance",
+      "description": "Daily attendance record for an employee",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 100, "description": "Deterministic ID: EID_YYYY-MM-DD" },
+        "eid": { "type": "string", "maxLength": 50, "description": "Employee ID" },
+        "employeeName": { "type": "string", "maxLength": 100, "description": "Employee Name" },
+        "department": { "type": "string", "maxLength": 100, "description": "Department" },
+        "project": { "type": "string", "maxLength": 100, "description": "Project" },
+        "date": { "type": "string", "maxLength": 20, "description": "Attendance date (YYYY-MM-DD)" },
+        "month": { "type": "string", "maxLength": 10, "description": "Month string (YYYY-MM)" },
+        "year": { "type": "string", "maxLength": 10, "description": "Year (YYYY)" },
+        "status": {
+          "type": "string",
+          "enum": ["P", "CL", "SL", "AL", "ML", "PL", "UL", "A", "WO", "PH", "OD", "TR", "WFH", "CO", "HD"],
+          "description": "Attendance status code"
+        },
+        "dutyDescription": { "type": "string", "maxLength": 500, "description": "Summary of duties performed" },
+        "remarks": { "type": "string", "maxLength": 500, "description": "Employee or HR remarks" },
+        "supportingDocument": { "type": "string", "maxLength": 500, "description": "Optional document reference" },
+        "verificationStatus": {
+          "type": "string",
+          "enum": ["Unverified", "Verified", "Correction Required"],
+          "description": "HR verification status"
+        },
+        "verifiedBy": { "type": "string", "maxLength": 100, "description": "HR user who verified" },
+        "verifiedAt": { "type": "string", "maxLength": 50, "description": "Verification timestamp" },
+        "verificationRemarks": { "type": "string", "maxLength": 500, "description": "HR verification notes" },
+        "source": { "type": "string", "maxLength": 50, "description": "DailyEntry, MonthlyRegister, or UploadedRegister" },
+        "createdAt": { "type": "string", "description": "Creation timestamp" },
+        "updatedAt": { "type": "string", "description": "Update timestamp" }
+      },
+      "required": ["eid", "date", "status", "verificationStatus"]
+    },
+    "LeaveRecord": {
+      "title": "LeaveRecord",
+      "description": "Employee leave application and record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 100, "description": "Unique leave record ID" },
+        "eid": { "type": "string", "maxLength": 50, "description": "Employee ID" },
+        "employeeName": { "type": "string", "maxLength": 100, "description": "Employee Name" },
+        "leaveType": { "type": "string", "maxLength": 50, "description": "Casual, Sick, Annual, Maternity, Paternity, Unpaid" },
+        "startDate": { "type": "string", "maxLength": 20, "description": "Start date (YYYY-MM-DD)" },
+        "endDate": { "type": "string", "maxLength": 20, "description": "End date (YYYY-MM-DD)" },
+        "totalDays": { "type": "number", "description": "Calculated working days of leave" },
+        "reason": { "type": "string", "maxLength": 1000, "description": "Reason for leave" },
+        "supportingDocument": { "type": "string", "maxLength": 500, "description": "Supporting document reference" },
+        "status": {
+          "type": "string",
+          "enum": ["Unverified", "Verified", "Correction Required", "Rejected"],
+          "description": "HR verification state"
+        },
+        "verifiedBy": { "type": "string", "maxLength": 100, "description": "HR verifier" },
+        "verifiedAt": { "type": "string", "maxLength": 50, "description": "Verification timestamp" },
+        "remarks": { "type": "string", "maxLength": 500, "description": "HR remarks" },
+        "createdAt": { "type": "string", "description": "Creation timestamp" }
+      },
+      "required": ["eid", "leaveType", "startDate", "endDate", "totalDays", "status"]
+    },
+    "MonthlyLock": {
+      "title": "MonthlyLock",
+      "description": "Lock status for monthly attendance registers",
+      "type": "object",
+      "properties": {
+        "month": { "type": "string", "maxLength": 10, "description": "Month string (YYYY-MM)" },
+        "isLocked": { "type": "boolean", "description": "Lock status" },
+        "lockedBy": { "type": "string", "maxLength": 100, "description": "User who locked the month" },
+        "lockedAt": { "type": "string", "maxLength": 50, "description": "Lock timestamp" },
+        "remarks": { "type": "string", "maxLength": 500, "description": "Reason or remarks" }
+      },
+      "required": ["month", "isLocked"]
+    },
+    "UploadedRegister": {
+      "title": "UploadedRegister",
+      "description": "Archive of uploaded attendance register files",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 100, "description": "Unique upload ID" },
+        "fileName": { "type": "string", "maxLength": 200, "description": "Original file name" },
+        "fileType": { "type": "string", "maxLength": 50, "description": "xlsx, csv, pdf, image" },
+        "month": { "type": "string", "maxLength": 10, "description": "Month string (YYYY-MM)" },
+        "department": { "type": "string", "maxLength": 100, "description": "Target department" },
+        "project": { "type": "string", "maxLength": 100, "description": "Target project" },
+        "remarks": { "type": "string", "maxLength": 500, "description": "Upload notes" },
+        "totalRows": { "type": "number", "description": "Number of rows parsed" },
+        "importedCount": { "type": "number", "description": "Count of records imported into database" },
+        "uploadedBy": { "type": "string", "maxLength": 100, "description": "HR user" },
+        "uploadedAt": { "type": "string", "maxLength": 50, "description": "Upload timestamp" }
+      },
+      "required": ["fileName", "fileType", "month", "uploadedBy"]
+    },
+    "AuditLog": {
+      "title": "AuditLog",
+      "description": "Immutable audit trail of actions in LEEDO HRMS",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 100, "description": "Log ID" },
+        "action": { "type": "string", "maxLength": 100, "description": "Action performed (e.g. ATTENDANCE_VERIFIED, EMPLOYEE_UPDATED)" },
+        "recordType": { "type": "string", "maxLength": 50, "description": "Attendance, Employee, Leave, Lock, Register" },
+        "recordId": { "type": "string", "maxLength": 100, "description": "Target record ID" },
+        "eid": { "type": "string", "maxLength": 50, "description": "Associated employee ID" },
+        "previousValue": { "type": "string", "maxLength": 2000, "description": "Serialized previous state" },
+        "newValue": { "type": "string", "maxLength": 2000, "description": "Serialized new state" },
+        "modifiedBy": { "type": "string", "maxLength": 100, "description": "User identifier" },
+        "modifiedAt": { "type": "string", "maxLength": 50, "description": "Timestamp" },
+        "reason": { "type": "string", "maxLength": 500, "description": "Reason for modification" }
+      },
+      "required": ["action", "recordType", "modifiedBy", "modifiedAt"]
+    },
+    "Holiday": {
+      "title": "Holiday",
+      "description": "Public and organizational holidays",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 50, "description": "Holiday date YYYY-MM-DD" },
+        "nameEn": { "type": "string", "maxLength": 100, "description": "Holiday name English" },
+        "nameBn": { "type": "string", "maxLength": 100, "description": "Holiday name Bangla" },
+        "date": { "type": "string", "maxLength": 20, "description": "Date (YYYY-MM-DD)" },
+        "type": { "type": "string", "enum": ["Public Holiday", "LEEDO Special Holiday"], "description": "Holiday category" },
+        "year": { "type": "string", "maxLength": 10, "description": "Year (YYYY)" }
+      },
+      "required": ["nameEn", "date", "type", "year"]
+    }
+  },
+  "firestore": {
+    "/employees/{employeeId}": {
+      "schema": { "$ref": "#/entities/Employee" },
+      "description": "Employee master records"
+    },
+    "/attendance/{attendanceId}": {
+      "schema": { "$ref": "#/entities/Attendance" },
+      "description": "Daily and monthly registered attendance entries indexed by EID_YYYY-MM-DD"
+    },
+    "/leaveRecords/{leaveId}": {
+      "schema": { "$ref": "#/entities/LeaveRecord" },
+      "description": "Leave applications and histories"
+    },
+    "/monthlyLocks/{month}": {
+      "schema": { "$ref": "#/entities/MonthlyLock" },
+      "description": "Monthly attendance freeze lock flags"
+    },
+    "/uploadedRegisters/{registerId}": {
+      "schema": { "$ref": "#/entities/UploadedRegister" },
+      "description": "Digital archives of attendance documents"
+    },
+    "/auditLogs/{logId}": {
+      "schema": { "$ref": "#/entities/AuditLog" },
+      "description": "Permanent audit log entries"
+    },
+    "/holidays/{holidayId}": {
+      "schema": { "$ref": "#/entities/Holiday" },
+      "description": "Public holidays and non-working days"
+    },
+    "/settings/{settingId}": {
+      "schema": { "$ref": "#/entities/Employee" },
+      "description": "Global LEEDO system parameters and defaults"
+    }
+  }
+}

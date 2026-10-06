@@ -1,0 +1,6 @@
+{
+  "name": "LEEDO HR Attendance & Leave Management System",
+  "description": "Bilingual, role-based HR attendance and leave management system for LEEDO (Local Education and Economic Development Organization), Bangladesh with daily/monthly registers, HR verification, and audit logs.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
