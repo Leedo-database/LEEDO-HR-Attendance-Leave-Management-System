@@ -70,28 +70,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
-    // Check local storage for active session first (Default to 1057 - Md. Omar Faruque, Manager HR & Admin)
-    const savedEid = localStorage.getItem('leedo_current_eid') || '1057';
+    // Check session storage for an actively logged-in employee session
+    const activeEid = sessionStorage.getItem('leedo_authenticated_eid');
     
-    syncEmployeeRecord(savedEid).then((emp) => {
-      if (emp) {
-        setCurrentUser(emp);
-      } else {
-        const fallback = INITIAL_EMPLOYEES.find(e => e.eid === '1057') || INITIAL_EMPLOYEES[0];
-        setCurrentUser(fallback);
-      }
+    if (activeEid) {
+      syncEmployeeRecord(activeEid).then((emp) => {
+        if (emp) {
+          setCurrentUser(emp);
+        } else {
+          setCurrentUser(null);
+          sessionStorage.removeItem('leedo_authenticated_eid');
+          localStorage.removeItem('leedo_current_eid');
+        }
+        setIsLoading(false);
+      });
+    } else {
+      // Start at the Login Screen: clear any stale default auto-login
+      localStorage.removeItem('leedo_current_eid');
+      setCurrentUser(null);
       setIsLoading(false);
-    });
+    }
 
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setFirebaseUser(user);
-      if (user) {
+      if (user && !user.isAnonymous) {
         if (user.email === 'hr.leedo2000@gmail.com') {
           const matched = INITIAL_EMPLOYEES.find(e => e.eid === '1057') || INITIAL_EMPLOYEES[0];
           setCurrentUser(matched);
+          sessionStorage.setItem('leedo_authenticated_eid', matched.eid);
           localStorage.setItem('leedo_current_eid', matched.eid);
         }
-      } else {
+      } else if (!user) {
         // Automatically establish an anonymous auth session for Firestore security compatibility
         try {
           await signInAnonymously(auth);
@@ -145,6 +154,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       setCurrentUser(emp);
+      sessionStorage.setItem('leedo_authenticated_eid', emp.eid);
       localStorage.setItem('leedo_current_eid', emp.eid);
       setIsLoading(false);
       return { success: true };
@@ -164,6 +174,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (email === 'hr.leedo2000@gmail.com') {
         const sa = INITIAL_EMPLOYEES.find(e => e.role === 'SUPER ADMIN')!;
         setCurrentUser(sa);
+        sessionStorage.setItem('leedo_authenticated_eid', sa.eid);
         localStorage.setItem('leedo_current_eid', sa.eid);
         setIsLoading(false);
         return { success: true };
@@ -173,6 +184,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const matched = INITIAL_EMPLOYEES.find(e => e.email.toLowerCase() === email?.toLowerCase());
       if (matched) {
         setCurrentUser(matched);
+        sessionStorage.setItem('leedo_authenticated_eid', matched.eid);
         localStorage.setItem('leedo_current_eid', matched.eid);
         setIsLoading(false);
         return { success: true };
@@ -181,6 +193,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Fallback: Default to HR Admin for organization manager
       const hrAdmin = INITIAL_EMPLOYEES[1];
       setCurrentUser(hrAdmin);
+      sessionStorage.setItem('leedo_authenticated_eid', hrAdmin.eid);
       localStorage.setItem('leedo_current_eid', hrAdmin.eid);
       setIsLoading(false);
       return { success: true };
@@ -197,6 +210,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // ignore
     }
     setCurrentUser(null);
+    sessionStorage.removeItem('leedo_authenticated_eid');
     localStorage.removeItem('leedo_current_eid');
   };
 
@@ -204,6 +218,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const emp = await syncEmployeeRecord(eid);
     if (emp) {
       setCurrentUser(emp);
+      sessionStorage.setItem('leedo_authenticated_eid', emp.eid);
       localStorage.setItem('leedo_current_eid', emp.eid);
     }
   };

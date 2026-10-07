@@ -11,7 +11,6 @@ import {
   Sparkles,
   ShieldCheck
 } from 'lucide-react';
-import { INITIAL_EMPLOYEES } from '../lib/initialData';
 
 export const LoginScreen: React.FC = () => {
   const { loginWithEid, loginWithGoogle, isLoading } = useAuth();
@@ -32,12 +31,6 @@ export const LoginScreen: React.FC = () => {
       setErrorMsg(res.error || 'Authentication failed. Please verify your EID and password.');
     }
     setIsSubmitting(false);
-  };
-
-  const handleFillDemo = (demoEid: string) => {
-    setEid(demoEid);
-    setPassword('password123');
-    setErrorMsg('');
   };
 
   return (
@@ -176,54 +169,6 @@ export const LoginScreen: React.FC = () => {
             </svg>
             <span>Sign In with Google Account</span>
           </button>
-
-          {/* Quick Demo Credentials */}
-          <div className="mt-6 pt-5 border-t border-slate-100">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-2 text-center">
-              Quick Test Accounts (Click to auto-fill)
-            </span>
-            <div className="grid grid-cols-2 gap-2 text-[11px]">
-              <button
-                type="button"
-                onClick={() => handleFillDemo('1057')}
-                className="p-2 bg-teal-50 hover:bg-teal-100 border border-teal-200 rounded-lg text-left transition-colors"
-              >
-                <span className="font-bold text-teal-900 block">HR Admin</span>
-                <span className="text-teal-700 font-mono">1057 - Omar Faruque</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleFillDemo('1001')}
-                className="p-2 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-lg text-left transition-colors"
-              >
-                <span className="font-bold text-purple-900 block">Super Admin</span>
-                <span className="text-purple-700 font-mono">1001 - Forhad Hossain</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleFillDemo('1004')}
-                className="p-2 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg text-left transition-colors"
-              >
-                <span className="font-bold text-blue-900 block">Employee (6-Day)</span>
-                <span className="text-blue-700 font-mono">1004 - Habibur Rahman</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleFillDemo('1017')}
-                className="p-2 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg text-left transition-colors"
-              >
-                <span className="font-bold text-amber-900 block">Employee (3-Day)</span>
-                <span className="text-amber-700 font-mono">1017 - Nargis Akhter</span>
-              </button>
-            </div>
-            <p className="text-[10px] text-slate-400 mt-2 text-center">
-              Password for all demo accounts: <code className="font-mono text-slate-600">password123</code>
-            </p>
-          </div>
-
         </div>
 
         {/* Footer info */}
