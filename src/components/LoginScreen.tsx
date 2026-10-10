@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import { useOrgSettings } from '../context/OrgSettingsContext';
 import { 
   Building2, 
   KeyRound, 
@@ -15,6 +16,7 @@ import {
 export const LoginScreen: React.FC = () => {
   const { loginWithEid, loginWithGoogle, isLoading } = useAuth();
   const { t, language, toggleLanguage } = useLanguage();
+  const { logoUrl } = useOrgSettings();
 
   const [eid, setEid] = useState('');
   const [password, setPassword] = useState('');
@@ -52,9 +54,12 @@ export const LoginScreen: React.FC = () => {
         {/* Brand Card */}
         <div className="text-center mb-6">
           <img 
-            src="/leedo-logo.svg" 
+            src={logoUrl || "/leedo-logo.svg"} 
             alt="LEEDO Logo" 
-            className="w-16 h-16 mx-auto mb-3 object-contain drop-shadow-md" 
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = '/leedo-logo.svg';
+            }}
+            className="w-16 h-16 mx-auto mb-3 object-contain drop-shadow-md rounded" 
           />
           <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
             LEEDO

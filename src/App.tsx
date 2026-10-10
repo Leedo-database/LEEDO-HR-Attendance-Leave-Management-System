@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { OrgSettingsProvider } from './context/OrgSettingsContext';
 import { LanguageProvider, useLanguage } from './context/LanguageContext';
 import { Navbar } from './components/Navbar';
 import { Sidebar, NavTab } from './components/Sidebar';
@@ -35,7 +36,7 @@ import {
   setDoc, 
   writeBatch 
 } from 'firebase/firestore';
-import { db, handleFirestoreError, OperationType } from './lib/firebase';
+import { db, handleFirestoreError, OperationType, sanitizeForFirestore } from './lib/firebase';
 import { 
   INITIAL_EMPLOYEES, 
   INITIAL_HOLIDAYS_2026, 
@@ -77,7 +78,7 @@ function MainApp() {
       if (empSnap.empty || empSnap.size < 50) {
         const batch = writeBatch(db);
         INITIAL_EMPLOYEES.forEach((emp) => {
-          batch.set(doc(db, 'employees', emp.eid), emp, { merge: true });
+          batch.set(doc(db, 'employees', emp.eid), sanitizeForFirestore(emp), { merge: true });
         });
         await batch.commit();
         setEmployees(INITIAL_EMPLOYEES);
@@ -196,6 +197,18 @@ function MainApp() {
   useEffect(() => {
     fetchAndSeedInitialData();
 
+    // Attach real-time listener for employees
+    const unsubEmployees = onSnapshot(collection(db, 'employees'), (snap) => {
+      const list: Employee[] = [];
+      snap.forEach(d => list.push(d.data() as Employee));
+      if (list.length > 0) {
+        list.sort((a, b) => (Number(a.eid) || 0) - (Number(b.eid) || 0));
+        setEmployees(list);
+      }
+    }, (err) => {
+      console.warn('Employees snapshot listener err:', err);
+    });
+
     // Attach real-time listener for attendance
     const unsubAttendance = onSnapshot(collection(db, 'attendance'), (snap) => {
       const list: AttendanceRecord[] = [];
@@ -216,6 +229,7 @@ function MainApp() {
     });
 
     return () => {
+      unsubEmployees();
       unsubAttendance();
       unsubAudit();
     };
@@ -491,7 +505,9 @@ export default function App() {
   return (
     <LanguageProvider>
       <AuthProvider>
-        <MainApp />
+        <OrgSettingsProvider>
+          <MainApp />
+        </OrgSettingsProvider>
       </AuthProvider>
     </LanguageProvider>
   );

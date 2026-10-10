@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { useOrgSettings, compressImageFile } from '../../context/OrgSettingsContext';
 import { Holiday } from '../../types';
 import { doc, setDoc, deleteDoc, addDoc, collection } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
@@ -15,7 +16,11 @@ import {
   Check, 
   AlertCircle,
   ShieldCheck,
-  Languages
+  Languages,
+  Upload,
+  Camera,
+  RefreshCw,
+  Image as ImageIcon
 } from 'lucide-react';
 import { INITIAL_DEPARTMENTS, INITIAL_PROJECTS, INITIAL_HOLIDAYS_2026 } from '../../lib/initialData';
 
@@ -30,8 +35,16 @@ export const SystemSettingsView: React.FC<SystemSettingsViewProps> = ({
 }) => {
   const { currentUser, role } = useAuth();
   const { t, language, toggleLanguage } = useLanguage();
+  const { logoUrl, updateLogo, resetLogo, isLoadingLogo } = useOrgSettings();
 
   const isSuperAdmin = role === 'SUPER ADMIN';
+  const isHrOrSuper = role === 'HR ADMIN' || role === 'SUPER ADMIN';
+
+  // Logo editing state
+  const [logoInputUrl, setLogoInputUrl] = useState('');
+  const [previewLogo, setPreviewLogo] = useState<string | null>(null);
+  const [logoMsg, setLogoMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [isSavingLogo, setIsSavingLogo] = useState(false);
 
   // Add holiday state
   const [newHolidayNameEn, setNewHolidayNameEn] = useState('');
@@ -39,6 +52,72 @@ export const SystemSettingsView: React.FC<SystemSettingsViewProps> = ({
   const [newHolidayDate, setNewHolidayDate] = useState('');
   const [newHolidayType, setNewHolidayType] = useState<'Public Holiday' | 'LEEDO Special Holiday'>('Public Holiday');
   const [isAddingHoliday, setIsAddingHoliday] = useState(false);
+
+  // Handle Logo Upload File
+  const handleLogoFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setLogoMsg({ type: 'error', text: 'Please upload a valid image file (PNG, JPG, SVG, WebP).' });
+      return;
+    }
+
+    try {
+      setLogoMsg(null);
+      const compressedDataUrl = await compressImageFile(file, 360, 360);
+      setPreviewLogo(compressedDataUrl);
+      setLogoInputUrl('');
+    } catch (err: any) {
+      setLogoMsg({ type: 'error', text: 'Failed to process image: ' + err.message });
+    }
+  };
+
+  // Save Logo to Firestore Cloud
+  const handleSaveLogo = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const finalLogo = previewLogo || logoInputUrl.trim();
+    if (!finalLogo) {
+      setLogoMsg({ type: 'error', text: 'Please upload an image file or provide an image URL.' });
+      return;
+    }
+
+    setIsSavingLogo(true);
+    setLogoMsg(null);
+    try {
+      const res = await updateLogo(finalLogo);
+      if (res.success) {
+        setLogoMsg({ 
+          type: 'success', 
+          text: language === 'bn' 
+            ? 'সংস্থার লোগো সফলভাবে পরিবর্তিত ও ক্লাউডে সংরক্ষিত হয়েছে।' 
+            : 'Organization logo updated and synced to Cloud Firestore successfully.' 
+        });
+        setTimeout(() => setLogoMsg(null), 4000);
+      } else {
+        setLogoMsg({ type: 'error', text: res.error || 'Failed to save logo.' });
+      }
+    } catch (err: any) {
+      setLogoMsg({ type: 'error', text: err.message || 'Error saving logo.' });
+    } finally {
+      setIsSavingLogo(false);
+    }
+  };
+
+  // Reset to default LEEDO logo
+  const handleResetLogo = async () => {
+    if (!confirm(language === 'bn' ? 'আপনি কি মূল LEEDO ডিফল্ট লোগো ফিরিয়ে আনতে চান?' : 'Reset to the official default LEEDO logo?')) return;
+    setIsSavingLogo(true);
+    await resetLogo();
+    setPreviewLogo('/leedo-logo.svg');
+    setLogoInputUrl('');
+    setLogoMsg({ 
+      type: 'success', 
+      text: language === 'bn' ? 'ডিফল্ট LEEDO লোগো সফলভাবে পুনঃস্থাপন করা হয়েছে।' : 'Reset to official LEEDO logo successfully.' 
+    });
+    setIsSavingLogo(false);
+    setTimeout(() => setLogoMsg(null), 3000);
+  };
 
   // Add Holiday
   const handleAddHoliday = async (e: React.FormEvent) => {
@@ -105,7 +184,7 @@ export const SystemSettingsView: React.FC<SystemSettingsViewProps> = ({
                 {t('navSettings')}
               </h1>
               <p className="text-xs text-slate-500">
-                Bangladesh NGO calendar rules, public holidays, work-week configuration, and organizational parameters.
+                Organization branding, logo customization, calendar rules, public holidays, and policy parameters.
               </p>
             </div>
           </div>
@@ -115,6 +194,123 @@ export const SystemSettingsView: React.FC<SystemSettingsViewProps> = ({
       {/* Grid of Settings */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
+        {/* Organization Logo & Branding Management Card */}
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div className="flex items-center gap-2">
+              <ImageIcon className="w-4 h-4 text-emerald-600" />
+              <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wide">
+                Organization Logo & Branding (সংস্থার লোগো পরিবর্তন)
+              </h3>
+            </div>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200">
+              HR Administration
+            </span>
+          </div>
+
+          {/* Current Logo Preview */}
+          <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 flex flex-col sm:flex-row items-center gap-4">
+            <div className="w-20 h-20 p-2 bg-white rounded-xl border border-slate-300 shadow-xs flex items-center justify-center shrink-0">
+              <img 
+                src={previewLogo || logoUrl || '/leedo-logo.svg'} 
+                alt="Active Logo" 
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = '/leedo-logo.svg';
+                }}
+                className="max-w-full max-h-full object-contain"
+              />
+            </div>
+            <div>
+              <span className="font-bold text-slate-800 block text-xs">Active Logo Preview</span>
+              <p className="text-[11px] text-slate-500 mt-0.5">
+                This logo automatically displays on the Header Navbar, Login Screen, and Official A4 Monthly Timesheets.
+              </p>
+            </div>
+          </div>
+
+          {logoMsg && (
+            <div className={`p-3 rounded-xl flex items-center gap-2 text-xs font-medium ${
+              logoMsg.type === 'success' ? 'bg-emerald-50 text-emerald-800 border border-emerald-300' : 'bg-rose-50 text-rose-800 border border-rose-300'
+            }`}>
+              {logoMsg.type === 'success' ? <Check className="w-4 h-4 text-emerald-600 shrink-0" /> : <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />}
+              <span>{logoMsg.text}</span>
+            </div>
+          )}
+
+          {/* Logo Upload Form */}
+          <form onSubmit={handleSaveLogo} className="space-y-3 text-xs">
+            
+            {/* File Upload Option */}
+            <div>
+              <label className="block font-semibold text-slate-700 mb-1">
+                Upload Logo Image File (লোগো ফাইল আপলোড)
+              </label>
+              <label className="flex flex-col items-center justify-center w-full p-4 border-2 border-dashed border-emerald-300 hover:border-emerald-500 rounded-xl cursor-pointer bg-emerald-50/30 hover:bg-emerald-50/70 transition-colors text-center">
+                <Upload className="w-5 h-5 text-emerald-600 mb-1" />
+                <span className="text-xs font-bold text-emerald-800">
+                  Click to select logo (PNG, JPG, SVG, WebP)
+                </span>
+                <span className="text-[10px] text-slate-500 mt-0.5">
+                  Optimized and saved to Cloud Firestore for permanent storage
+                </span>
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  onChange={handleLogoFileUpload} 
+                  className="hidden" 
+                />
+              </label>
+            </div>
+
+            <div className="flex items-center gap-3 my-2">
+              <div className="h-px bg-slate-200 flex-1" />
+              <span className="text-[10px] font-bold text-slate-400 uppercase">OR Image URL</span>
+              <div className="h-px bg-slate-200 flex-1" />
+            </div>
+
+            {/* Direct URL Input */}
+            <div>
+              <label className="block font-semibold text-slate-700 mb-1">
+                Image Web Link / URL (ওয়েব লিংক)
+              </label>
+              <input
+                type="url"
+                value={logoInputUrl}
+                onChange={(e) => {
+                  setLogoInputUrl(e.target.value);
+                  if (e.target.value.trim()) {
+                    setPreviewLogo(e.target.value.trim());
+                  }
+                }}
+                placeholder="https://example.com/logo.png"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-1 focus:ring-emerald-500"
+              />
+            </div>
+
+            <div className="pt-2 flex items-center justify-between gap-2">
+              <button
+                type="button"
+                onClick={handleResetLogo}
+                disabled={isSavingLogo}
+                className="px-3 py-2 text-slate-600 hover:text-rose-700 font-semibold text-[11px] transition-colors flex items-center gap-1"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Reset Default</span>
+              </button>
+
+              <button
+                type="submit"
+                disabled={isSavingLogo}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-xs transition-colors flex items-center gap-1.5 disabled:opacity-50"
+              >
+                <Check className="w-3.5 h-3.5" />
+                <span>{isSavingLogo ? 'Saving to Cloud...' : 'Save & Apply Logo (সংরক্ষণ করুন)'}</span>
+              </button>
+            </div>
+
+          </form>
+        </div>
+
         {/* Organization Work-Week Configuration */}
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
           <div className="flex items-center gap-2 mb-2">
@@ -168,7 +364,7 @@ export const SystemSettingsView: React.FC<SystemSettingsViewProps> = ({
         </div>
 
         {/* Public Holidays Management */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4 lg:col-span-2">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <Calendar className="w-4 h-4 text-blue-600" />

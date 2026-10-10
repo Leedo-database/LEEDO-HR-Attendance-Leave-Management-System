@@ -9,7 +9,7 @@ import {
   User as FirebaseUser
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, collection, getDocs } from 'firebase/firestore';
-import { auth, db, handleFirestoreError, OperationType } from '../lib/firebase';
+import { auth, db, handleFirestoreError, OperationType, sanitizeForFirestore } from '../lib/firebase';
 import { Employee, UserRole } from '../types';
 import { INITIAL_EMPLOYEES } from '../lib/initialData';
 
@@ -22,7 +22,7 @@ interface AuthContextType {
   loginWithGoogle: () => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   switchUserRole: (eid: string) => Promise<void>;
-  updateCurrentEmployeeProfile: (updated: Partial<Employee>) => Promise<void>;
+  updateCurrentEmployeeProfile: (updated: Partial<Employee>) => Promise<{ success: boolean; error?: string }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -49,14 +49,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Check if found in INITIAL_EMPLOYEES
       const seed = INITIAL_EMPLOYEES.find(e => e.eid.toUpperCase() === eid.toUpperCase());
       if (seed) {
-        await setDoc(empRef, seed);
+        try {
+          await setDoc(empRef, sanitizeForFirestore(seed));
+        } catch (seedErr) {
+          console.warn('Seeding employee to firestore note:', seedErr);
+        }
         return seed;
       }
 
       // If logging in via admin email hr.leedo2000@gmail.com
       if (fallbackEmail === 'hr.leedo2000@gmail.com') {
         const hrAdmin = INITIAL_EMPLOYEES.find(e => e.eid === '1057') || INITIAL_EMPLOYEES[0];
-        await setDoc(empRef, hrAdmin);
+        try {
+          await setDoc(empRef, sanitizeForFirestore(hrAdmin));
+        } catch (hrErr) {
+          console.warn('Seeding hr admin to firestore note:', hrErr);
+        }
         return hrAdmin;
       }
 
@@ -144,6 +152,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { success: false, error: 'Account is deactivated. Contact LEEDO HR.' };
       }
 
+      // Verify custom password if set
+      if (emp.password && emp.password !== pass) {
+        setIsLoading(false);
+        return { success: false, error: 'Incorrect password entered for this employee account.' };
+      }
+
       // Try Firebase auth with mapped email if enabled
       try {
         const mappedEmail = emp.email || `${cleanEid.toLowerCase()}@leedo.org.bd`;
@@ -223,15 +237,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const updateCurrentEmployeeProfile = async (updated: Partial<Employee>) => {
-    if (!currentUser) return;
-    const merged = { ...currentUser, ...updated, updatedAt: new Date().toISOString() };
+  const updateCurrentEmployeeProfile = async (updated: Partial<Employee>): Promise<{ success: boolean; error?: string }> => {
+    if (!currentUser) return { success: false, error: 'No active employee session' };
+    const merged: Employee = { 
+      ...currentUser, 
+      ...updated, 
+      updatedAt: new Date().toISOString() 
+    };
+
+    const cleanPayload = sanitizeForFirestore(merged);
+
     try {
-      await setDoc(doc(db, 'employees', currentUser.eid), merged, { merge: true });
-    } catch (err) {
-      console.warn('Profile update firestore err:', err);
+      await setDoc(doc(db, 'employees', currentUser.eid), cleanPayload, { merge: true });
+      console.log('Profile successfully saved to Firestore cloud for EID:', currentUser.eid);
+      setCurrentUser(merged);
+      
+      try {
+        localStorage.setItem(`leedo_profile_${currentUser.eid}`, JSON.stringify(cleanPayload));
+      } catch (e) {
+        // ignore storage quota
+      }
+
+      return { success: true };
+    } catch (err: any) {
+      console.error('Profile update firestore err:', err);
+      setCurrentUser(merged);
+      return { success: false, error: err.message || 'Failed to sync to cloud database' };
     }
-    setCurrentUser(merged);
   };
 
   return (

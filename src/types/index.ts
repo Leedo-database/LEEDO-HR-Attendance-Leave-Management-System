@@ -66,6 +66,7 @@ export interface Employee {
   supervisorEid?: string;
   employmentType?: string;
   photoUrl?: string;
+  password?: string;
 
   // Working Hours & Schedule Settings (e.g. 6 days, 5 days, 3 days weekly)
   workingDaysPerWeek: number; // 3, 5, or 6

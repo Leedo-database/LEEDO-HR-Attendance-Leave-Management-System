@@ -25,6 +25,7 @@ import {
   ATTENDANCE_STATUS_COLORS 
 } from '../../lib/attendanceCalculator';
 import { canUserVerifyAttendance } from '../../lib/supervisorUtils';
+import { useOrgSettings } from '../../context/OrgSettingsContext';
 
 interface MonthlyTimesheetViewProps {
   employees: Employee[];
@@ -39,6 +40,7 @@ export const MonthlyTimesheetView: React.FC<MonthlyTimesheetViewProps> = ({
 }) => {
   const { currentUser, role } = useAuth();
   const { t, language } = useLanguage();
+  const { logoUrl } = useOrgSettings();
 
   const isHrOrSuper = role === 'HR ADMIN' || role === 'SUPER ADMIN';
   const canSelectStaff = isHrOrSuper || canUserVerifyAttendance(currentUser, employees);
@@ -165,9 +167,12 @@ export const MonthlyTimesheetView: React.FC<MonthlyTimesheetViewProps> = ({
         <div className="flex items-center justify-between border-b-2 border-red-600 pb-4 mb-4">
           <div className="flex items-center gap-3">
             <img 
-              src="/leedo-logo.svg" 
+              src={logoUrl || "/leedo-logo.svg"} 
               alt="LEEDO Logo" 
-              className="w-16 h-16 object-contain shrink-0" 
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = '/leedo-logo.svg';
+              }}
+              className="w-16 h-16 object-contain shrink-0 rounded" 
             />
             <div>
               <h2 className="text-xl font-black text-red-600 tracking-tight leading-tight">
